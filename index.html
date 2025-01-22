@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global RSS News Feed</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --card-bg: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --accent: #bb86fc;
+            --error: #cf6679;
+            --success: #03dac6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--accent), var(--success));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, var(--accent), var(--success));
+            color: var(--bg-primary);
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(187, 134, 252, 0.3);
+        }
+
+        .refresh-btn i {
+            font-size: 1.2rem;
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .news-item {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .news-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(187, 134, 252, 0.2);
+        }
+
+        .news-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+        }
+
+        .news-item:hover::before {
+            transform: scaleX(1);
+        }
+
+        .source-tag {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: rgba(187, 134, 252, 0.1);
+            color: var(--accent);
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .news-item h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .news-item p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .read-more {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .read-more:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            text-align: center;
+            color: var(--error);
+            padding: 1rem;
+            background: rgba(207, 102, 121, 0.1);
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>JC FARMER</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="controls">
+            <button class="refresh-btn" onclick="fetchRandomNews()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh News
+            </button>
+        </div>
+        <div id="news-container" class="news-grid">
+            <div class="loading">Loading news...</div>
+        </div>
+    </div>
+
+    <script>
+        const rssFeeds = [
+            "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+            "https://feeds.bbci.co.uk/news/rss.xml",
+            "https://www.aljazeera.com/xml/rss/all.xml",
+            "https://feeds.reuters.com/reuters/topNews",
+            "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+            "https://feeds.npr.org/1001/rss.xml",
+            "https://www.theguardian.com/international/rss",
+            "https://www.sciencedaily.com/rss/all.xml",
+            "https://www.techradar.com/rss",
+            "https://feeds.feedburner.com/TheHackersNews",
+            "https://feeds.feedburner.com/ndtvnews-world-news",
+            "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms",
+            "https://www.latimes.com/world/rss2.0.xml",
+            "https://www.space.com/feeds/all",
+            "https://feeds.skynews.com/feeds/rss/world.xml"
+        ];
+
+        function getRandomFeeds(count = 3) {
+            const shuffled = [...rssFeeds].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        function sanitizeHTML(text) {
+            const div = document.createElement('div');
+            div.innerHTML = text;
+            return div.textContent || div.innerText || '';
+        }
+
+        async function fetchRandomNews() {
+            const newsContainer = document.getElementById("news-container");
+            newsContainer.innerHTML = '<div class="loading">Loading news...</div>';
+
+            try {
+                const selectedFeeds = getRandomFeeds();
+                const newsPromises = selectedFeeds.map(async feed => {
+                    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed)}`);
+                    const data = await response.json();
+                    return {feed, data};
+                });
+
+                const results = await Promise.all(newsPromises);
+                newsContainer.innerHTML = '';
+
+                results.forEach(({feed, data}) => {
+                    try {
+                        const parser = new DOMParser();
+                        const xml = parser.parseFromString(data.contents, "text/xml");
+                        const items = xml.querySelectorAll("item");
+                        
+                        const randomItems = Array.from(items)
+                            .sort(() => 0.5 - Math.random())
+                            .slice(0, 4);
+
+                        randomItems.forEach(item => {
+                            const title = sanitizeHTML(item.querySelector("title").textContent);
+                            const link = item.querySelector("link").textContent;
+                            const description = sanitizeHTML(item.querySelector("description")?.textContent || "No description available.");
+                            const sourceName = feed.split('/')[2].replace('www.', '');
+
+                            const newsItem = document.createElement("div");
+                            newsItem.classList.add("news-item");
+                            newsItem.onclick = () => window.open(link, '_blank');
+
+                            newsItem.innerHTML = `
+                                <div class="source-tag">${sourceName}</div>
+                                <h2>${title}</h2>
+                                <p>${description.slice(0, 150)}${description.length > 150 ? '...' : ''}</p>
+                                <a href="${link}" class="read-more" target="_blank">
+                                    Read more
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            `;
+
+                            newsContainer.appendChild(newsItem);
+                        });
+                    } catch (error) {
+                        console.error("Error parsing feed:", error);
+                    }
+                });
+
+                if (newsContainer.children.length === 0) {
+                    throw new Error("No news items could be loaded");
+                }
+
+            } catch (error) {
+                console.error("Error fetching RSS feeds:", error);
+                newsContainer.innerHTML = `
+                    <div class="error">
+                        Failed to load news. Please try again later.
+                        <br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Initial load
+        fetchRandomNews();
+    </script>
+</body>
+</html>
